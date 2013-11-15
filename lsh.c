@@ -30,6 +30,7 @@
 void PrintCommand(int, Command *);
 void PrintPgm(Pgm *);
 void stripwhite(char *);
+void execute (Command *);
 
 /* When non-zero, this global means the user is done using this program. */
 int done = 0;
@@ -44,6 +45,7 @@ int main(void)
 {
   Command cmd;
   int n;
+  char *arg_list[10];
 
   while (!done) {
 
@@ -67,6 +69,8 @@ int main(void)
         /* execute it */
         n = parse(line, &cmd);
         PrintCommand(n, &cmd);
+        execute(&cmd);
+
       }
     }
     
@@ -145,3 +149,21 @@ stripwhite (char *string)
 
   string [++i] = '\0';
 }
+
+
+void execute(Command *cmd)
+{
+  pid_t pid;
+  pid = fork();
+  if( pid < 0)
+  {
+    printf("Error occured");
+    exit(-1);
+  }
+  else if(pid==0)
+  {    
+    execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
+  }
+  else
+    wait(NULL);
+  }
