@@ -164,6 +164,11 @@ void execute(Command *cmd)
   {    
     execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
   }
-  else
+  else if(cmd->bakground){
+    
+  }
+  else 
+  {
     wait(NULL);
   }
+}
