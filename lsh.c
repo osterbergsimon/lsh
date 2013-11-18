@@ -24,6 +24,8 @@
 #include "parse.h"
 #include <signal.h>
 #include <unistd.h>
+#include <errno.h>
+
 
 /*
  * Function declarations
@@ -49,7 +51,7 @@ void sig_handler(int signo)
       pid_t pid;
       pid = fork();
       kill(pid,SIGKILL);
-      printf("received SIGINT\n");
+      //printf("received SIGINT\n");
     }
 }
 
@@ -194,7 +196,9 @@ int builtincmd(Command *cmd) {
     exit(0);
   } 
   else if (!strcmp(cmd->pgm->pgmlist[0],"cd")) {
-    chdir(cmd->pgm->pgmlist[1]);
+    if(chdir(cmd->pgm->pgmlist[1]) == -1) {
+      perror("Error cd: ");
+    }
     r = 1;
   }
   
