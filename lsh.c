@@ -1,20 +1,20 @@
-/* 
- * Main source code file for lsh shell program
- *
- * You are free to add functions to this file.
- * If you want to add functions in a separate file 
- * you will need to modify Makefile to compile
- * your additional functions.
- *
- * Add appropriate comments in your code to make it
- * easier for us while grading your assignment.
- *
- * Submit the entire lab1 folder as a tar archive (.tgz).
- * Command to create submission archive: 
-      $> tar cvf lab1.tgz lab1/
- *
- * All the best 
- */
+/*
+* Main source code file for lsh shell program
+*
+* You are free to add functions to this file.
+* If you want to add functions in a separate file
+* you will need to modify Makefile to compile
+* your additional functions.
+*
+* Add appropriate comments in your code to make it
+* easier for us while grading your assignment.
+*
+* Submit the entire lab1 folder as a tar archive (.tgz).
+* Command to create submission archive:
+$> tar cvf lab1.tgz lab1/
+*
+* All the best
+*/
 
 
 #include <stdio.h>
@@ -24,29 +24,28 @@
 #include "parse.h"
 
 /*
- * Function declarations
- */
+* Function declarations
+*/
 
 void PrintCommand(int, Command *);
 void PrintPgm(Pgm *);
 void stripwhite(char *);
 void execute (Command *);
 
-
-#define NORMAL        00
-#define BACKGROUND    11
-#define PIPE          22
+#define NORMAL 0
+#define BACKGROUND 11
+#define PIPE 22
 
 
 /* When non-zero, this global means the user is done using this program. */
 int done = 0;
 
 /*
- * Name: main
- *
- * Description: Gets the ball rolling...
- *
- */
+* Name: main
+*
+* Description: Gets the ball rolling...
+*
+*/
 int main(void)
 {
   Command cmd;
@@ -64,22 +63,18 @@ int main(void)
     }
     else {
       /*
-       * Remove leading and trailing whitespace from the line
-       * Then, if there is anything left, add it to the history list
-       * and execute it.
-       */
+* Remove leading and trailing whitespace from the line
+* Then, if there is anything left, add it to the history list
+* and execute it.
+*/
       stripwhite(line);
 
       if(*line) {
         add_history(line);
         /* execute it */
-        
         n = parse(line, &cmd);
-        PrintCommand(n, &cmd);
-        
-        if(builtincmd(&cmd) == 0) {
-            execute(&cmd);
-        }
+        //PrintCommand(n, &cmd);
+        execute(&cmd);
 
       }
     }
@@ -92,27 +87,27 @@ int main(void)
 }
 
 /*
- * Name: PrintCommand
- *
- * Description: Prints a Command structure as returned by parse on stdout.
- *
- */
+* Name: PrintCommand
+*
+* Description: Prints a Command structure as returned by parse on stdout.
+*
+*/
 void
 PrintCommand (int n, Command *cmd)
 {
   printf("Parse returned %d:\n", n);
-  printf("   stdin : %s\n", cmd->rstdin  ? cmd->rstdin  : "<none>" );
-  printf("   stdout: %s\n", cmd->rstdout ? cmd->rstdout : "<none>" );
-  printf("   bg    : %s\n", cmd->bakground ? "yes" : "no");
+  printf(" stdin : %s\n", cmd->rstdin ? cmd->rstdin : "<none>" );
+  printf(" stdout: %s\n", cmd->rstdout ? cmd->rstdout : "<none>" );
+  printf(" bg : %s\n", cmd->bakground ? "yes" : "no");
   PrintPgm(cmd->pgm);
 }
 
 /*
- * Name: PrintPgm
- *
- * Description: Prints a list of Pgm:s
- *
- */
+* Name: PrintPgm
+*
+* Description: Prints a list of Pgm:s
+*
+*/
 void
 PrintPgm (Pgm *p)
 {
@@ -123,10 +118,10 @@ PrintPgm (Pgm *p)
     char **pl = p->pgmlist;
 
     /* The list is in reversed order so print
-     * it reversed to get right
-     */
+* it reversed to get right
+*/
     PrintPgm(p->next);
-    printf("    [");
+    printf(" [");
     while (*pl) {
       printf("%s ", *pl++);
     }
@@ -135,10 +130,10 @@ PrintPgm (Pgm *p)
 }
 
 /*
- * Name: stripwhite
- *
- * Description: Strip whitespace from the start and end of STRING.
- */
+* Name: stripwhite
+*
+* Description: Strip whitespace from the start and end of STRING.
+*/
 void
 stripwhite (char *string)
 {
@@ -160,57 +155,51 @@ stripwhite (char *string)
   string [++i] = '\0';
 }
 
-int builtincmd(Command *cmd) {
-  int r = 0;
-  
-  if (!strcmp(cmd->pgm->pgmlist[0],"exit")) {
-    r = 1;
-    exit(0);
-  } 
-  else if (!strcmp(cmd->pgm->pgmlist[0],"cd")) {
-    chdir(cmd->pgm->pgmlist[1]);
-    r = 1;
-  }
-  
-  return r;
-}
 
 
 
 void execute(Command *cmd)
 {
-
   int mode;
+  pid_t pid, pid2;
+  FILE *fp;
+  int pipeline[2];
 
   if(cmd->bakground){
     mode = BACKGROUND;
   }
   else if(cmd->pgm->next != NULL){
     mode = PIPE;
+    if(pipe(pipeline)){
+      printf("Pipe failure!\n");
+      exit(-1);
+    }
   }
   else{
     mode = NORMAL;
   }
 
-  pid_t pid, pid2;
-  FILE *fp;
-  int pipe[2];
-
   pid = fork();
-  if( pid < 0)
-  {
+  if( pid < 0){
     printf("Error occured");
     exit(-1);
   }
   else if(pid==0)
   {
     switch(mode){
-      case PIPE:
-        close(pipe[0]);
-        dup2(pipe[1], fileno(stdout));
-        close(pipe[1]);
+      case NORMAL:
+        execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
+        
         break;
-      default:
+  
+      case PIPE:
+        close(pipeline[0]);
+        dup2(pipeline[1], fileno(stdout));
+        close(pipeline[1]);
+        execvp(cmd->pgm->next->pgmlist[0],cmd->pgm->next->pgmlist);
+        
+        break; 
+      default :
         execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
         break;
     }
@@ -223,24 +212,25 @@ void execute(Command *cmd)
     }
     else if(mode == PIPE)
     {
-      waitpid(pid, NULL, 0);
+      waitpid(pid,NULL,0);
       pid2 = fork();
       if( pid2 < 0)
       {
-        printf("Error occured");
+        perror("Error occured");
         exit(-1);
       }
 
       else if(pid2 == 0)
       {
-        close(pipe[1]);   
-        dup2(pipe[0], fileno(stdin));
-        close(pipe[0]);
-        execvp(cmd->pgm->next->pgmlist[0], cmd->pgm->next->pgmlist);
+        close(pipeline[1]);   
+        dup2(pipeline[0], fileno(stdin));
+        close(pipeline[0]);
+        execvp(cmd->pgm->pgmlist[0], cmd->pgm->pgmlist);
       }
       else{
-        close(pipe[0]);
-        close(pipe[1]);
+        close(pipeline[0]);
+        close(pipeline[1]);
+        wait(NULL);
       }
 
     }
@@ -251,4 +241,3 @@ void execute(Command *cmd)
 
   }
 }
-
