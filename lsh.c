@@ -67,9 +67,13 @@ int main(void)
       if(*line) {
         add_history(line);
         /* execute it */
+        
         n = parse(line, &cmd);
         PrintCommand(n, &cmd);
-        execute(&cmd);
+        
+        if(builtincmd(&cmd) == 0) {
+            execute(&cmd);
+        }
 
       }
     }
@@ -151,6 +155,22 @@ stripwhite (char *string)
 }
 
 
+int builtincmd(Command *cmd) {
+  int r = 0;
+  
+  if (!strcmp(cmd->pgm->pgmlist[0],"exit")) {
+    r = 1;
+    exit(0);
+  } 
+  else if (!strcmp(cmd->pgm->pgmlist[0],"cd")) {
+    chdir(cmd->pgm->pgmlist[1]);
+    r = 1;
+  }
+  
+  return r;
+}
+
+
 void execute(Command *cmd)
 {
   pid_t pid;
@@ -165,7 +185,7 @@ void execute(Command *cmd)
     execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
   }
   else if(cmd->bakground){
-    
+    ;
   }
   else 
   {
