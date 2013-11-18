@@ -101,7 +101,7 @@ int main(void)
         /* execute it */
         
         n = parse(line, &cmd);
-        PrintCommand(n, &cmd);
+        //PrintCommand(n, &cmd);
         
         if(builtincmd(&cmd) == 0) {
             execute(&cmd);
@@ -234,17 +234,13 @@ void execute(Command *cmd)
   else if(!(cmd->rstdout == NULL)){
     if(!(cmd->rstdin == NULL)){
       mode = INOUT;
-      printf("INOUTMODE\n");
     }else{
       mode = OUT;
-      printf("OUTMODE\n");
     }
 
   }
   else if(!(cmd->rstdin == NULL)){
     mode = IN;
-    printf("INMODE\n");
-
   }
 
   else{
@@ -264,11 +260,30 @@ void execute(Command *cmd)
         break;
   
       case PIPE:
+        
+        if(cmd->rstdin != NULL){
+          fd = fopen(cmd->rstdin, "r");
+          dup2(fileno(fd), 0);
+
+        }
+       /*) if(cmd->rstdout != NULL){
+          fd2 = fopen(cmd->rstdout, "w+");
+          dup2(fileno(fd2), 0);
+        } */
+
         close(pipeline[0]);
         dup2(pipeline[1], fileno(stdout));
         close(pipeline[1]);
         execvp(cmd->pgm->next->pgmlist[0],cmd->pgm->next->pgmlist); 
         break; 
+
+
+      case IN:
+        fd = fopen(cmd->rstdin, "r");
+        dup2(fileno(fd), 0); 
+        execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
+        break;
+
 
       case OUT:
         fd = fopen(cmd->rstdout, "w+");
@@ -276,11 +291,6 @@ void execute(Command *cmd)
         execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
         break;
 
-      case IN:
-        fd = fopen(cmd->rstdin, "r");
-        dup2(fileno(fd), 0); 
-        execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
-        break;
 
       case INOUT:
         fd = fopen(cmd->rstdin, "r");
@@ -313,9 +323,20 @@ void execute(Command *cmd)
 
       else if(pid2 == 0)
       {
+
+
+        /*else if(cmd->rstdin != NULL){
+          fd = fopen(cmd->rstdin, "r");
+          dup2(fileno(fd), 0); 
+        }*/
+
         close(pipeline[1]);   
         dup2(pipeline[0], fileno(stdin));
         close(pipeline[0]);
+        if(cmd->rstdout != NULL){
+          fd2 = fopen(cmd->rstdout, "w+");
+          dup2(fileno(fd2), 1); 
+        }
         execvp(cmd->pgm->pgmlist[0], cmd->pgm->pgmlist);
       }
       else{
