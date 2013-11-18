@@ -50,7 +50,6 @@ int done = 0;
 int main(void)
 {
   Command cmd;
-
   int n;
   char *arg_list[10];
 
@@ -74,19 +73,22 @@ int main(void)
       if(*line) {
         add_history(line);
         /* execute it */
+        
         n = parse(line, &cmd);
         PrintCommand(n, &cmd);
-        execute(&cmd);
+        
+        if(builtincmd(&cmd) == 0) {
+            execute(&cmd);
+        }
 
       }
+    }
     
     if(line) {
       free(line);
     }
   }
   return 0;
-}
-
 }
 
 /*
@@ -157,6 +159,22 @@ stripwhite (char *string)
 
   string [++i] = '\0';
 }
+
+int builtincmd(Command *cmd) {
+  int r = 0;
+  
+  if (!strcmp(cmd->pgm->pgmlist[0],"exit")) {
+    r = 1;
+    exit(0);
+  } 
+  else if (!strcmp(cmd->pgm->pgmlist[0],"cd")) {
+    chdir(cmd->pgm->pgmlist[1]);
+    r = 1;
+  }
+  
+  return r;
+}
+
 
 
 void execute(Command *cmd)
@@ -233,3 +251,4 @@ void execute(Command *cmd)
 
   }
 }
+
