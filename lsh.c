@@ -32,6 +32,12 @@ void PrintPgm(Pgm *);
 void stripwhite(char *);
 void execute (Command *);
 
+
+#define NORMAL        00
+#define BACKGROUND    11
+#define PIPE          22
+
+
 /* When non-zero, this global means the user is done using this program. */
 int done = 0;
 
@@ -44,6 +50,7 @@ int done = 0;
 int main(void)
 {
   Command cmd;
+
   int n;
   char *arg_list[10];
 
@@ -72,13 +79,14 @@ int main(void)
         execute(&cmd);
 
       }
-    }
     
     if(line) {
       free(line);
     }
   }
   return 0;
+}
+
 }
 
 /*
@@ -153,7 +161,23 @@ stripwhite (char *string)
 
 void execute(Command *cmd)
 {
-  pid_t pid;
+
+  int mode;
+
+  if(cmd->bakground){
+    mode = BACKGROUND;
+  }
+  else if(cmd->pgm->next != NULL){
+    mode = PIPE;
+  }
+  else{
+    mode = NORMAL;
+  }
+
+  pid_t pid, pid2;
+  FILE *fp;
+  int pipe[2];
+
   pid = fork();
   if( pid < 0)
   {
@@ -161,14 +185,51 @@ void execute(Command *cmd)
     exit(-1);
   }
   else if(pid==0)
-  {    
-    execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
-  }
-  else if(cmd->bakground){
-    
-  }
-  else 
   {
-    wait(NULL);
+    switch(mode){
+      case PIPE:
+        close(pipe[0]);
+        dup2(pipe[1], fileno(stdout));
+        close(pipe[1]);
+        break;
+      default:
+        execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
+        break;
+    }
+  }
+
+  else{
+
+    if(mode == BACKGROUND){
+      ;
+    }
+    else if(mode == PIPE)
+    {
+      waitpid(pid, NULL, 0);
+      pid2 = fork();
+      if( pid2 < 0)
+      {
+        printf("Error occured");
+        exit(-1);
+      }
+
+      else if(pid2 == 0)
+      {
+        close(pipe[1]);   
+        dup2(pipe[0], fileno(stdin));
+        close(pipe[0]);
+        execvp(cmd->pgm->next->pgmlist[0], cmd->pgm->next->pgmlist);
+      }
+      else{
+        close(pipe[0]);
+        close(pipe[1]);
+      }
+
+    }
+    else
+    {
+      wait(NULL);
+    }
+
   }
 }
