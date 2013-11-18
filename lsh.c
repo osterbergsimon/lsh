@@ -22,6 +22,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "parse.h"
+#include <signal.h>
+#include <unistd.h>
 
 /*
  * Function declarations
@@ -30,10 +32,27 @@
 void PrintCommand(int, Command *);
 void PrintPgm(Pgm *);
 void stripwhite(char *);
+int builtincmd(Command *);
 void execute (Command *);
 
 /* When non-zero, this global means the user is done using this program. */
 int done = 0;
+
+/*
+ * Name: sig_handler
+ * Description: handles crtl-c input
+ *
+ */
+void sig_handler(int signo)
+{
+  if (signo == SIGINT){
+      pid_t pid;
+      pid = fork();
+      kill(pid,SIGKILL);
+      printf("received SIGINT\n");
+    }
+}
+
 
 /*
  * Name: main
@@ -46,9 +65,12 @@ int main(void)
   Command cmd;
   int n;
   char *arg_list[10];
-
+  
+  if (signal(SIGINT, sig_handler) == SIG_ERR)
+  printf("\ncan't catch SIGINT\n");
+      
   while (!done) {
-
+    
     char *line;
     line = readline("> ");
 
@@ -84,6 +106,11 @@ int main(void)
   }
   return 0;
 }
+
+
+
+
+
 
 /*
  * Name: PrintCommand
@@ -154,7 +181,11 @@ stripwhite (char *string)
   string [++i] = '\0';
 }
 
-
+/*
+ * Name: builtincmd
+ *
+ * Description: handles built in commands cd and exit
+ */
 int builtincmd(Command *cmd) {
   int r = 0;
   
