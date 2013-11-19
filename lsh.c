@@ -58,7 +58,6 @@ void sig_handler(int signo)
 {
   if (signo == SIGINT){
       pid_t pid;
-      pid = fork();
       kill(pid,SIGTERM);
     }
    else if (signo == SIGCHLD) {
@@ -257,7 +256,10 @@ void execute(Command *cmd)
   {
     switch(mode){
       case NORMAL:
-        execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
+        if(execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist)){
+          perror("Error");
+          exit(-1);
+        }
         break;
   
       case PIPE:
@@ -275,21 +277,31 @@ void execute(Command *cmd)
         close(pipeline[0]);
         dup2(pipeline[1], fileno(stdout));
         close(pipeline[1]);
-        execvp(cmd->pgm->next->pgmlist[0],cmd->pgm->next->pgmlist); 
+        
+        if(execvp(cmd->pgm->next->pgmlist[0],cmd->pgm->next->pgmlist)){
+          perror("Error");
+          exit(-1);
+        }
         break; 
 
 
       case IN:
         fd = fopen(cmd->rstdin, "r");
         dup2(fileno(fd), 0); 
-        execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
+        if(execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist)){
+          perror("Error");
+          exit(-1);
+        }
         break;
 
 
       case OUT:
         fd = fopen(cmd->rstdout, "w+");
         dup2(fileno(fd),1);
-        execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
+        if(execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist)){
+          perror("Error");
+          exit(-1);
+        }
         break;
 
 
@@ -298,11 +310,17 @@ void execute(Command *cmd)
         dup2(fileno(fd), 0); 
         fd2 = fopen(cmd->rstdout, "w+");
         dup2(fileno(fd2),1);
-        execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
+        if(execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist)){
+          perror("Error");
+          exit(-1);
+        }
 
 
       default :
-        execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist);
+        if(execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist)){
+          perror("Error");
+          exit(-1);
+        }
         break;
     }
   }
@@ -338,7 +356,10 @@ void execute(Command *cmd)
           fd2 = fopen(cmd->rstdout, "w+");
           dup2(fileno(fd2), 1); 
         }
-        execvp(cmd->pgm->pgmlist[0], cmd->pgm->pgmlist);
+        if(execvp(cmd->pgm->pgmlist[0],cmd->pgm->pgmlist)){
+          perror("Error: ");
+          exit(-1);
+        }
       }
       else{
         close(pipeline[0]);
