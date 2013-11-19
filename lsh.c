@@ -25,6 +25,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/types.h>
 
 
 /*
@@ -34,7 +35,7 @@
 void PrintCommand(int, Command *);
 void PrintPgm(Pgm *);
 void stripwhite(char *);
-int builtincmd(Command *);
+int  builtincmd(Command *);
 void execute (Command *);
 
 #define NORMAL 0
@@ -50,7 +51,7 @@ int done = 0;
 
 /*
  * Name: sig_handler
- * Description: handles crtl-c input
+ * Description: handles crtl-c input and kills zombie processes
  *
  */
 void sig_handler(int signo)
@@ -58,9 +59,13 @@ void sig_handler(int signo)
   if (signo == SIGINT){
       pid_t pid;
       pid = fork();
-      kill(pid,SIGKILL);
-      //printf("received SIGINT\n");
+      kill(pid,SIGTERM);
     }
+   else if (signo == SIGCHLD) {
+      int status;
+      pid_t pid;
+      pid = waitpid(-1, &status, WNOHANG);
+   }
 }
 
 
@@ -76,9 +81,9 @@ int main(void)
   int n;
   char *arg_list[10];
   
-  if (signal(SIGINT, sig_handler) == SIG_ERR)
-  printf("\ncan't catch SIGINT\n");
-      
+  signal(SIGINT, sig_handler);
+  signal(SIGCHLD, sig_handler);
+  
   while (!done) {
     
     char *line;
@@ -116,11 +121,6 @@ int main(void)
   }
   return 0;
 }
-
-
-
-
-
 
 /*
  * Name: PrintCommand
@@ -201,6 +201,7 @@ int builtincmd(Command *cmd) {
   
   if (!strcmp(cmd->pgm->pgmlist[0],"exit")) {
     r = 1;
+    printf("Bye!\n");
     exit(0);
   } 
   else if (!strcmp(cmd->pgm->pgmlist[0],"cd")) {
